@@ -22,7 +22,7 @@ app.use(cors({
 }));
 app.use(express.json());
 
-
+let client; // Declare client globally
  //Mongodb connection
  //const MONGO_URL="mongodb://127.0.0.1";
  const MONGO_URL=process.env.MONGO_URL;
@@ -67,7 +67,7 @@ app.use(express.json());
 //   });
 async function createConnection() {
   try {
-    const client = new MongoClient(MONGO_URL);
+     client = new MongoClient(MONGO_URL);
     await client.connect();
     console.log("Mongo is connected😃");
 
