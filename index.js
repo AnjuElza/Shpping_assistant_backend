@@ -10,7 +10,7 @@ import cron from "node-cron";
 
 dotenv.config();
 // process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
-
+const PORT=process.env.PORT;
 const app=express();
 
 app.use(express.json());
@@ -22,38 +22,94 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const PORT=4000;
 
  //Mongodb connection
  //const MONGO_URL="mongodb://127.0.0.1";
  const MONGO_URL=process.env.MONGO_URL;
- async function createConnection(){
-  const client=new MongoClient(MONGO_URL);
+
+//  async function createConnection(){
+//   const client=new MongoClient(MONGO_URL);
+//   await client.connect();
+//   console.log("Mongo is connected😃");
+//   return client;
+//  }
+// //  const client= await createConnection();
+
+// // app.get("/",function(request,response){
+// //     response.send("hi world");
+// // });
+// createConnection()
+//   .then((client) => {
+//     // Set up server routes and start listening
+//     app.get("/", function (request, response) {
+//       response.send("hi world");
+//     });
+// app.listen(PORT, ()=>console.log
+// ('Server started🙂')
+// );
+// // Schedule the scraping task to run every 12 hours
+// //cron.schedule('* * * * *', () => {
+//   cron.schedule('0 */12 * * *', () => {
+//     try {
+//       console.log('Cron job is running!');
+//       AmazonProductDetails();
+//       // SnapdealProductDetails();
+//     } catch (error) {
+//       console.error('Error executing cron job:', error);
+//     }
+//   });
+//   // Start the scraping immediately on server start
+//   AmazonProductDetails();
+//   //SnapdealProductDetails();
+//   })
+//   .catch((error) => {
+//     console.error("Error connecting to MongoDB:", error);
+//   });
+async function createConnection() {
+  const client = new MongoClient(MONGO_URL);
   await client.connect();
   console.log("Mongo is connected😃");
-  return client;
- }
- const client= await createConnection();
 
-app.get("/",function(request,response){
+  // Schedule the scraping task to run every 12 hours
+  cron.schedule('0 */12 * * *', () => {
+    try {
+      console.log('Cron job is running!');
+      AmazonProductDetails();
+       SnapdealProductDetails();
+    } catch (error) {
+      console.error('Error executing cron job:', error);
+    }
+  });
+
+  // Start the scraping immediately on server start
+  AmazonProductDetails();
+   SnapdealProductDetails();
+}
+
+createConnection().then((client) => {
+  // Set up server routes and start listening
+  app.get("/", function (request, response) {
     response.send("hi world");
+  });
+
+  app.listen(PORT, () => console.log('Server started🙂'));
+
+  // Your other route and functions here...
+}).catch((error) => {
+  console.error("Error connecting to MongoDB:", error);
 });
-app.listen(PORT, ()=>console.log
-('Server started🙂')
-);
+
        
 //const url="https://www.amazon.in/dp/B0B4F2TTTS";
 
- app.get('/',function(req,res){
-    res.json('Webscraper')                                               
- })  
-
- //scheduling scraping websites using node-cron.
-//  cron.schedule('* * 12 * * *', () => {
   //Get Amazon details
-  let amazon_product_details=[];
-   app.get('/amzn_data',async (request,response)=>{
-    const website_urls=[
+  async function AmazonProductDetails(){
+   try{ 
+    console.log('Cron job amazon is running!');
+ 
+    let amazon_product_details=[];
+    app.get('/amzn_data',async (request,response)=>{
+      const website_urls=[
     "https://www.amazon.in/dp/B07PDYW7VS",
     "https://www.amazon.in/dp/B00W56GLOQ",
     "https://www.amazon.in/dp/B00935M9H0",
@@ -64,16 +120,16 @@ app.listen(PORT, ()=>console.log
     "https://www.amazon.in/dp/B09DNY91KR",
     "https://www.amazon.in/dp/B09CSXWNWC",
     "https://www.amazon.in/dp/B09JSH94QT"
-    ];
+     ];
     
-    const final_result=[];
-    let amazon_product_details1=[];
+      const final_result=[];
+      let amazon_product_details1=[];
                  var amazon_details=[];
     
         for(let i=0;i<website_urls.length; i++){
        const url=website_urls[i];
   
-     let getData= await axios(url).then(response=>{ 
+      let getData= await axios(url).then(response=>{ 
           const html=response.data;
           const $ = cheerio.load(html);
          const articles=[];
@@ -85,36 +141,58 @@ app.listen(PORT, ()=>console.log
              
           });
      
-         $('.a-icon-alt',html).each(function(){
+          $('.a-icon-alt',html).each(function(){
                    const rating=$(this).text();
                     ratings.push(rating
                     );
-         });
-         if(!articles[6].includes("₹")){
+          });
+          if(!articles[6].includes("₹")){
           articles[6]==articles[0];
-         }
-         if(!ratings[0].includes("stars")){
+           }
+          if(!ratings[0].includes("stars")){
           ratings[0]="Rating unavailable";
-         }
+          }
          amazon_product_details.push({"id":i+1,"price":articles[6],"offer_price": articles[0],"rating":ratings[0],"url":url}); 
-         
-  }).catch(err=>console.log(err));
-}
-console.log(amazon_product_details);
+        
+          }).catch(err=>console.log(err));
+        }
+      console.log(amazon_product_details);
+      await saveToDatabaseAmazon( amazon_product_details );
+         console.log("Data saved to database");
          })
-//post amazon data into db
-app.post("/amzn_data_post", async function(request,response){
-  const data=request.body;
-  console.log(data);
-  const result_amazon=await client
-                            .db("Ecommerce_web_scrapping")
-                            .collection("amazon_products")
-                            .insertMany(data);
-  response.send(result_amazon);
-                      
-});
+         
+        } catch (err) {
+          console.error('Error scraping amazon website', err);
+        }
+     }
+ 
+
+  
+ 
+//Function to post amazon data into db
+
+async function saveToDatabaseAmazon(data) {
+  try {
+    const data_string = JSON.stringify(data); // Convert the array of objects to JSON
+
+    const result_amazon = await client
+      .db("Ecommerce_web_scrapping")
+      .collection("amazon_products")
+      .insertMany(JSON.parse(data_string)); // Insert the JSON data into MongoDB
+
+    console.log(result_amazon);
+    return Promise.resolve(); // Resolve the promise when the data is saved
+  } catch (error) {
+    console.error("Error inserting to database", error);
+    return Promise.reject(error); // Reject the promise if an error occurs
+  }
+}
+
 
  //Get snapdeal details
+ async function SnapdealProductDetails(){
+  try{ 
+   console.log('Cron job snapdeal is running!');
  let snapdeal_product_details=[];
  app.get('/snpdl_data',async (request,response)=>{
   const website_urls=[
@@ -184,19 +262,32 @@ app.post("/amzn_data_post", async function(request,response){
 }
 console.log(snapdeal_product_details);
 //console.log(typeof snapdeal_product_details);
+await saveToDatabaseSnapdeal( snapdeal_product_details );
+         console.log("Data saved to database");
        })
-//post amazon data into db
-app.post("/snpdl_data_post", async function(request,response){
-const data=request.body;
-console.log(data);
-const result_snapdeal=await client
-                          .db("Ecommerce_web_scrapping")
-                          .collection("snapdeal_products")
-                          .insertMany(data);
-response.send(result_snapdeal);
-                    
-});
-//  });
+      } catch (err) {
+        console.error('Error scraping snapdeal website', err);
+      }
+    }
+
+//Function to post snapdeal data into db
+
+async function saveToDatabaseSnapdeal(data) {
+  try {
+    const data_string = JSON.stringify(data); // Convert the array of objects to JSON
+
+    const result_snapdeal = await client
+      .db("Ecommerce_web_scrapping")
+      .collection("snapdeal_products")
+      .insertMany(JSON.parse(data_string)); // Insert the JSON data into MongoDB
+
+    console.log(result_snapdeal);
+    return Promise.resolve(); // Resolve the promise when the data is saved
+  } catch (error) {
+    console.error("Error inserting to database", error);
+    return Promise.reject(error); // Reject the promise if an error occurs
+  }
+}
 
 //get amazon data from db
 app.get("/amzn_data_db", async function(request, response) {
@@ -226,3 +317,4 @@ app.get("/snpdl_data_db", async function(request, response) {
   console.log(snapdeal_data);
   response.send(snapdeal_data);
 });
+

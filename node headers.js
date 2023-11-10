@@ -1,4 +1,4 @@
-const axios = require('axios'); 
+import { get } from 'axios'; 
  
     const config = { 
         headers: { 
@@ -22,7 +22,7 @@ const axios = require('axios');
 		 "X-Amzn-Trace-Id": "Root=1-630ce94f-289bc1c678d8cd7153e42f5a" 
 	} 
 };
-axios.get('https://httpbin.org/headers', config) 
+get('https://httpbin.org/headers', config) 
 	.then(({ data }) => { 
 		console.log(data) 
 	});
