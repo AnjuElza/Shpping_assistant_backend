@@ -66,24 +66,29 @@ app.use(express.json());
 //     console.error("Error connecting to MongoDB:", error);
 //   });
 async function createConnection() {
-  const client = new MongoClient(MONGO_URL);
-  await client.connect();
-  console.log("Mongo is connected😃");
+  try {
+    const client = new MongoClient(MONGO_URL);
+    await client.connect();
+    console.log("Mongo is connected😃");
 
-  // Schedule the scraping task to run every 12 hours
-  cron.schedule('0 */12 * * *', () => {
-    try {
-      console.log('Cron job is running!');
-      AmazonProductDetails();
-       SnapdealProductDetails();
-    } catch (error) {
-      console.error('Error executing cron job:', error);
-    }
-  });
+    // Schedule the scraping task to run every 12 hours
+    cron.schedule('0 */12 * * *', () => {
+      try {
+        console.log('Cron job is running!');
+        AmazonProductDetails();
+        // SnapdealProductDetails();
+      } catch (error) {
+        console.error('Error executing cron job:', error);
+      }
+    });
 
-  // Start the scraping immediately on server start
-  AmazonProductDetails();
-   SnapdealProductDetails();
+    // Start the scraping immediately on server start
+    AmazonProductDetails();
+    // SnapdealProductDetails();
+  } catch (error) {
+    console.error('Error creating MongoDB connection:', error);
+    throw error; // Rethrow the error to ensure it's logged and terminates the server setup
+  }
 }
 
 createConnection().then((client) => {
