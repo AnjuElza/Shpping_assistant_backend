@@ -94,7 +94,6 @@ createConnection().then((client) => {
 
   app.listen(PORT, () => console.log('Server started🙂'));
 
-  // Your other route and functions here...
 }).catch((error) => {
   console.error("Error connecting to MongoDB:", error);
 });
