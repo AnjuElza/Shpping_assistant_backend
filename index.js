@@ -76,7 +76,7 @@ async function createConnection() {
       try {
         console.log('Cron job is running!');
         AmazonProductDetails();
-        // SnapdealProductDetails();
+         SnapdealProductDetails();
       } catch (error) {
         console.error('Error executing cron job:', error);
       }
@@ -84,7 +84,7 @@ async function createConnection() {
 
     // Start the scraping immediately on server start
     AmazonProductDetails();
-    // SnapdealProductDetails();
+     SnapdealProductDetails();
   } catch (error) {
     console.error('Error creating MongoDB connection:', error);
     throw error; // Rethrow the error to ensure it's logged and terminates the server setup
