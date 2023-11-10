@@ -318,17 +318,3 @@ app.get("/snpdl_data_db", async function(request, response) {
   response.send(snapdeal_data);
 });
 
-<<<<<<< HEAD
-=======
-// Schedule the scraping task to run every 12 hours
-//cron.schedule('* * * * *', () => {
- cron.schedule('0 */12 * * *', () => {
-  try {
-    console.log('Cron job is running!');
-    AmazonProductDetails();
-    SnapdealProductDetails();
-  } catch (error) {
-    console.error('Error executing cron job:', error);
-  }
-});
->>>>>>> 709638ed289e16a4b59fd0e16f73185cf48201a3
